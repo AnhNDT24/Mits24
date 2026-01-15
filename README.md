@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
@@ -108,3 +109,6 @@ cp .env.example .env
 docker compose up -d
 npm install
 npm run start:dev
+=======
+# Mits24
+>>>>>>> 8a0d12fa817029b31927ef1f27ebd8f497145267
