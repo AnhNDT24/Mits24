@@ -12,16 +12,7 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const expiresInConfig = config.get<string>('JWT_EXPIRES_IN') ?? '7d';
-        return {
-          secret: config.get<string>('JWT_SECRET'),
-          signOptions: { expiresIn: expiresInConfig as any },
-        };
-      },
-    }),
+    JwtModule.register({ global: true })
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

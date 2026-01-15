@@ -1,14 +1,16 @@
-import { Controller, Get, Post, Body } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch,UseGuards, Req } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard"
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UsersService } from "./user.service";
-
+import { UpdateDateColumn } from "./dto/update-profile.dto"
 @Controller("users")
 export class UsersController {
 	constructor(private usersService: UsersService) {}
 
-	@Get()
-	findAll() {
-		return this.usersService.findAll();
+	@Get('me')
+	@UseGuards(JwtAuthGuard)
+	getMe(@Req() req) {
+		return req.user;
 	}
 
 	@Post()
@@ -22,4 +24,10 @@ export class UsersController {
 			passwordHash,
 		});
 	}
+	@Patch('profile')
+	@UseGuards(JwtAuthGuard)
+	updateProfile(@Req() req, @Body() dto: UpdateDateColumn) {
+	return this.usersService.update(req.user.id, dto);
+	}
+
 }

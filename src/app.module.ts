@@ -10,18 +10,20 @@ import { AuthModule } from "./auth/auth.module";
 		TypeOrmModule.forRootAsync({
 		imports: [ConfigModule], 
 		  inject: [ConfigService],
-		  useFactory: (config: ConfigService) => ({
-			type: 'mysql',
-			host: config.get<string>('DB_HOST'),
-			port: Number(config.get<string>('DB_PORT')),
-			username: config.get<string>('DB_USER'),
-			password: config.get<string>('DB_PASS'),
-			database: config.get<string>('DB_NAME'),
-			autoLoadEntities: true,
-			synchronize: false,
-			logging: true,
-		  }),
-		}),
+		  useFactory: (config: ConfigService) => {
+			return {
+			  type: 'mysql',
+			  host: config.get('DB_HOST'),
+			  port: Number(config.get('DB_PORT')),
+			  username: config.get('DB_USER'),
+			  password: config.get('DB_PASS'),
+			  database: config.get('DB_NAME'),
+			  autoLoadEntities: true,
+			  synchronize: false,
+			  logging: true,
+		  };
+		},
+	}),
 		UsersModule,
 		AuthModule,
 

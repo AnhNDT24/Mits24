@@ -18,16 +18,16 @@ export class UserEntity {
     @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
     id: number;
 
-    @Column({ type: 'varchar', length: 255, unique: true })
-    email: string;
+    @Column({ type: 'varchar', length: 255, nullable:true, unique: true })
+    email: string | null;
 
-    @Column({ name: 'password_hash', type:'varchar', length:255 })
+    @Column({ name: 'password_hash', type:'varchar', length:255, select: false })
     passwordHash: string;
 
     @Column({ type: 'varchar', length: 120 })
     name: string;
 
-    @Column({ type: 'varchar', length: 20, nullable: false, unique: true })
+    @Column({ type: 'varchar', length: 20, nullable: true, unique: true })
     phone: string | null;
 
     @Column({ name: 'full_name', type: 'varchar', length: 120, nullable: true })
@@ -38,6 +38,14 @@ export class UserEntity {
 
     @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
     status: UserStatus;
+
+    @Column({ 
+        name: 'refresh_token_hash', 
+        type: 'varchar', 
+        length: 255, 
+        nullable: true, 
+        select: false })
+    refreshTokenHash: string | null;
 
     @OneToMany(() => UserAddressEntity, (a) => a.user)
     addresses: UserAddressEntity[];

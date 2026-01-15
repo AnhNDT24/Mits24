@@ -1,8 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
 import type { CreateUserDto } from "./dto/create-user.dto";
 import { UserEntity } from "./entities/user.entity";
+import { UpdateDateColumn } from "./dto/update-profile.dto";
+import *  as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -36,8 +38,43 @@ export class UsersService {
           .getOne();
       }
       
-      async create(data: { email?: string; phone?: string; name: string; passwordHash: string }) {
-        const user = this.repo.create(data);
+      async create(dto: CreateUserDto) {
+        const { password, email, phone, name } = dto;
+      
+        if (!password) {
+          throw new BadRequestException('Password is required');
+        }
+      
+        const passwordHash = await bcrypt.hash(password, 10);
+      
+        return this.userRepository.save({
+          email: email ?? null,
+          phone: phone ?? null,
+          name,
+          passwordHash,
+        });
+      }
+
+      async setRefreshTokenHash(userId: number, refreshTokenHash: string) {
+        await this.repo.update({ id: userId }, { refreshTokenHash });
+      }
+
+      async revokeRefreshToken(userId: number) {
+        await this.repo.update({ id: userId }, { refreshTokenHash: null });
+      }
+
+      async findOneWithRefreshTokenHash(id: number) {
+        return this.repo
+          .createQueryBuilder('u')
+          .addSelect('u.refreshTokenHash')
+          .where('u.id = :id', { id })
+          .getOne();
+      }
+
+      async update(id: number, dto: UpdateDateColumn) {
+        const user = await this.repo.findOne({ where: {id}});
+        if (!user) throw new NotFoundException('User not found');
+        Object.assign(user, dto);
         return this.repo.save(user);
       }
-}
+    }
