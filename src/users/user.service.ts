@@ -4,11 +4,11 @@ import type { Repository } from "typeorm";
 import type { CreateUserDto } from "./dto/create-user.dto";
 import { UserEntity } from "./entities/user.entity";
 import { UpdateDateColumn } from "./dto/update-profile.dto";
+import { CreateUserInput } from "src/auth/dto/create-user-input.dto";
 import *  as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-    [x: string]: any;
     constructor(
         @InjectRepository(UserEntity) 
         private repo: Repository<UserEntity>) {}
@@ -38,22 +38,31 @@ export class UsersService {
           .getOne();
       }
       
-      async create(dto: CreateUserDto) {
-        const { password, email, phone, name } = dto;
-      
-        if (!password) {
-          throw new BadRequestException('Password is required');
+      async create(input: CreateUserInput) {
+          return this.repo.save({
+            email: input.email ?? null,
+            phone: input.phone ?? null,
+            name: input.name,
+            passwordHash: input.passwordHash, 
+            fullName: input.fullName,
+            avatar: input.avatar,
+            status: input.status,
+          });
         }
-      
-        const passwordHash = await bcrypt.hash(password, 10);
-      
-        return this.userRepository.save({
-          email: email ?? null,
-          phone: phone ?? null,
-          name,
-          passwordHash,
-        });
-      }
+
+      async createFromDto(dto: CreateUserDto) {
+          const passwordHash = await bcrypt.hash(dto.password, 10);
+          return this.repo.save({
+            email: dto.email,
+            phone: dto.phone,
+            name: dto.name,
+            passwordHash,
+            fullName: dto.fullName,
+            avatar: dto.avatar,
+            status: dto.status,
+          });
+        }
+        
 
       async setRefreshTokenHash(userId: number, refreshTokenHash: string) {
         await this.repo.update({ id: userId }, { refreshTokenHash });
