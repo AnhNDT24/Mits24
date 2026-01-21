@@ -1,60 +1,77 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
+import {
+	BadRequestException,
+	Body,
+	Controller,
+	Post,
+	Req,
+	Res,
+} from "@nestjs/common";
+import type { Request, Response } from "express";
+import {
+	clearRefreshCookie,
+	getRefreshTokenFromRequest,
+	setRefreshCookie,
+} from "./auth.helpers";
+import type { AuthService } from "./auth.service";
+import type { LoginDto } from "./dto/login.dto";
+import type { RefreshDto } from "./dto/refresh.dto";
+import type { RegisterDto } from "./dto/register.dto";
+import type { LoginResult, RefreshResult } from "./types";
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+	constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
-  }
+	@Post("register")
+	register(@Body() dto: RegisterDto) {
+		return this.authService.register(dto);
+	}
 
-  @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+	@Post("login")
+	async login(
+		@Body() dto: LoginDto,
+		@Res({ passthrough: true }) res: Response,
+	): Promise<LoginResult> {
+		const result = await this.authService.login(dto);
 
+		setRefreshCookie(res, result.refreshCookie);
 
-    const {accessToken, user, refreshCookie} = await this.authService.login(dto);
+		return result;
+	}
 
-    res.cookie(refreshCookie.name, refreshCookie.value, refreshCookie.options);
+	@Post("refresh")
+	async refresh(
+		@Req() req: Request,
+		@Body() dto: RefreshDto,
+		@Res({ passthrough: true }) res: Response,
+	): Promise<{ accessToken: string }> {
+		const cookieName = this.authService.getRefreshCookieName();
 
-    return { 
-        accessToken,
-        user 
-    };
-  }
+		const rt = getRefreshTokenFromRequest(req, cookieName) ?? dto.refreshToken;
 
-  @Post('refresh')
-  async refresh(
-    @Req() req: Request,
-    @Body() dto: RefreshDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const cookieName = this.authService.getRefreshCookieName();
-    const cookieRt = (req as any).cookies?.[cookieName];
-    const rt = cookieRt ?? dto.refreshToken;
+		if (!rt) {
+			throw new BadRequestException("Missing refresh token");
+		}
 
-    const result = await this.authService.refresh(rt);
+		const result: RefreshResult = await this.authService.refresh(rt);
 
-    res.cookie(result.refreshCookie.name, result.refreshCookie.value, result.refreshCookie.options);
+		setRefreshCookie(res, result.refreshCookie);
 
-    return { 
-        accessToken: result.accessToken
-    };
-  }
+		return { accessToken: result.accessToken };
+	}
 
-  @Post('logout')
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const cookieName = this.authService.getRefreshCookieName();
-    const rt = (req as any).cookies?.[cookieName];
+	@Post("logout")
+	async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+		const cookieName = this.authService.getRefreshCookieName();
 
-    await this.authService.logout(rt);
+		const rt = getRefreshTokenFromRequest(req, cookieName);
 
-    res.clearCookie(cookieName, { path: '/auth/refresh' });
-    return { message: 'Logged out' };
-  }
+		if (rt) {
+			await this.authService.logout(rt);
+		}
+
+		clearRefreshCookie(res, cookieName);
+
+		return { message: "Logged out" };
+	}
 }

@@ -1,0 +1,26 @@
+{
+    "[javascript]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    },
+    "editor.codeActionsOnSave": {
+      "source.fixAll.biome": "explicit",
+      "source.organizeImports.biome": "explicit"
+    },
+    "editor.defaultFormatter": "biomejs.biome",
+    "workbench.colorCustomizations": {
+      "titleBar.activeBackground": "#BB0825",
+      "titleBar.activeForeground": "#FFFFFF",
+      "titleBar.inactiveBackground": "#C2213B",
+      "titleBar.inactiveForeground": "#FFFFFFCC"
+    }
+  }
+  
