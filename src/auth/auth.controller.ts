@@ -1,9 +1,24 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
+
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+
+import type { LoginResult, RefreshResult } from './types';
+import {
+  getRefreshTokenFromRequest,
+  setRefreshCookie,
+  clearRefreshCookie,
+} from './auth.helpers';
 
 @Controller('auth')
 export class AuthController {
@@ -15,17 +30,15 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResult> {
+    const result = await this.authService.login(dto);
 
+    setRefreshCookie(res, result.refreshCookie);
 
-    const {accessToken, user, refreshCookie} = await this.authService.login(dto);
-
-    res.cookie(refreshCookie.name, refreshCookie.value, refreshCookie.options);
-
-    return { 
-        accessToken,
-        user 
-    };
+    return result;
   }
 
   @Post('refresh')
@@ -33,28 +46,34 @@ export class AuthController {
     @Req() req: Request,
     @Body() dto: RefreshDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<{ accessToken: string }> {
     const cookieName = this.authService.getRefreshCookieName();
-    const cookieRt = (req as any).cookies?.[cookieName];
-    const rt = cookieRt ?? dto.refreshToken;
 
-    const result = await this.authService.refresh(rt);
+    const rt = getRefreshTokenFromRequest(req, cookieName) ?? dto.refreshToken;
 
-    res.cookie(result.refreshCookie.name, result.refreshCookie.value, result.refreshCookie.options);
+    if (!rt) {
+      throw new BadRequestException('Missing refresh token');
+    }
 
-    return { 
-        accessToken: result.accessToken
-    };
+    const result: RefreshResult = await this.authService.refresh(rt);
+
+    setRefreshCookie(res, result.refreshCookie);
+
+    return { accessToken: result.accessToken };
   }
 
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const cookieName = this.authService.getRefreshCookieName();
-    const rt = (req as any).cookies?.[cookieName];
 
-    await this.authService.logout(rt);
+    const rt = getRefreshTokenFromRequest(req, cookieName);
 
-    res.clearCookie(cookieName, { path: '/auth/refresh' });
+    if (rt) {
+      await this.authService.logout(rt);
+    }
+
+    clearRefreshCookie(res, cookieName);
+
     return { message: 'Logged out' };
   }
 }

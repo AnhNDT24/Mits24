@@ -2,8 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
 import { UsersService } from '../users/user.service';
+import { UserEntity } from 'src/users/entities/user.entity';
+import { JwtPayload } from './types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -18,16 +19,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    // payload = { sub, email, phone, iat, exp }
-    const user = await this.usersService.findOne(Number(payload.sub));
+  async validate(payload: JwtPayload): Promise<UserEntity> {
+    const userId = parseInt(payload.sub, 10);
+    if (isNaN(userId)) {
+      throw new UnauthorizedException();
+    }
 
-
-
+    const user = await this.usersService.findOne(userId);
     if (!user) {
       throw new UnauthorizedException();
     }
-    // Gắn user vào req.user (không có passwordHash vì select: false)
     return user;
   }
 }
